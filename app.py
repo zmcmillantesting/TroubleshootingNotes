@@ -73,14 +73,17 @@ class NoteDialog(BaseDialog):
         self.destroy()
 
 class NotesApp:
-    def __init__(self, root, settings_file="test_settings.json"):
+    def __init__(self, root, settings_file="user_settings.json"):
         self.root = root
         self.root.title("Troubleshooting Notes")
         
-        # Initialize database and settings
-        self.db = Database()
+        # Initialize settings first
         self.settings_file = settings_file
         self.load_user_settings()
+        
+        # Use hardcoded network path for database
+        db_path = r"P:\EMS Testing & Repair\Troubleshooting App\dist\database\notes.db"
+        self.db = Database(db_path)
         
         self.setup_gui()
         self.refresh_companies()
@@ -90,7 +93,9 @@ class NotesApp:
             with open(self.settings_file, 'r') as f:
                 self.settings = json.load(f)
         else:
-            self.settings = {"last_user": ""}
+            self.settings = {
+                "last_user": "",
+            }
             self.save_user_settings()
 
     def save_user_settings(self):
@@ -112,9 +117,9 @@ class NotesApp:
         self.user_id.insert(0, self.settings.get("last_user", ""))
         
         # Company section
-        ttk.Label(main_frame, text="Company:").grid(row=1, column=0, sticky=tk.W)
+        ttk.Label(main_frame, text="Company:").grid(row=2, column=0, sticky=tk.W)
         company_frame = ttk.Frame(main_frame)
-        company_frame.grid(row=1, column=1, columnspan=2, sticky=(tk.W, tk.E))
+        company_frame.grid(row=2, column=1, columnspan=2, sticky=(tk.W, tk.E))
         company_frame.columnconfigure(0, weight=1)
         
         self.company_var = tk.StringVar()
@@ -127,9 +132,9 @@ class NotesApp:
         ttk.Button(company_buttons_frame, text="Delete", command=self.delete_company_dialog).pack(side=tk.LEFT, padx=2)
         
         # Board section
-        ttk.Label(main_frame, text="Board:").grid(row=2, column=0, sticky=tk.W)
+        ttk.Label(main_frame, text="Board:").grid(row=3, column=0, sticky=tk.W)
         board_frame = ttk.Frame(main_frame)
-        board_frame.grid(row=2, column=1, columnspan=2, sticky=(tk.W, tk.E))
+        board_frame.grid(row=3, column=1, columnspan=2, sticky=(tk.W, tk.E))
         board_frame.columnconfigure(0, weight=1)
         
         self.board_var = tk.StringVar()
@@ -143,7 +148,7 @@ class NotesApp:
         
         # Notes section
         notes_frame = ttk.LabelFrame(main_frame, text="Notes", padding="5")
-        notes_frame.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S))
+        notes_frame.grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S))
         notes_frame.columnconfigure(0, weight=1)
         notes_frame.rowconfigure(0, weight=1)
         
@@ -181,7 +186,7 @@ class NotesApp:
         main_frame.grid_columnconfigure(1, weight=1)  # Middle column expands
         main_frame.grid_columnconfigure(0, weight=0)  # Label column stays fixed
         main_frame.grid_columnconfigure(2, weight=0)  # Button column stays fixed
-        main_frame.grid_rowconfigure(3, weight=1)     # Notes section expands vertically
+        main_frame.grid_rowconfigure(4, weight=1)     # Notes section expands vertically
         
         # Bind events
         self.company_combo.bind('<<ComboboxSelected>>', lambda e: self.refresh_boards())
