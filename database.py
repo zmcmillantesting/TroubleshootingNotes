@@ -195,7 +195,63 @@ class Database:
         """Delete a company and all its associated boards and notes"""
         boards = self.execute_with_retry('SELECT id FROM boards WHERE company_id = ?', (company_id,)).fetchall()
         for board_id in boards:
-        result = cursor.execute('''
+            self.execute_with_retry('DELETE FROM notes WHERE board_id = ?', (board_id[0],))
+        self.execute_with_retry('DELETE FROM boards WHERE company_id = ?', (company_id,))
+        self.execute_with_retry('DELETE FROM companies WHERE id = ?', (company_id,))
+
+    def get_companies(self):
+        return self.execute_with_retry('SELECT id, name FROM companies').fetchall()
+
+    def get_boards(self, company_id):
+        return self.execute_with_retry(
+            'SELECT id, board_identifier FROM boards WHERE company_id = ?',
+            (company_id,)
+        ).fetchall()
+
+    def get_notes(self, board_id):
+        return self.execute_with_retry('''
+            SELECT id, user_id, title, content, created_at, updated_at, last_modified_by 
+            FROM notes 
+            WHERE board_id = ?
+            ORDER BY updated_at DESC
+        ''', (board_id,)).fetchall()
+
+    def get_note(self, note_id):
+        return self.execute_with_retry('''
+            SELECT id, board_id, user_id, title, content, created_at, updated_at, last_modified_by 
+            FROM notes 
+            WHERE id = ?
+        ''', (note_id,)).fetchone()
+
+    def set_note_editing_status(self, note_id, user_id):
+        """Returns True if successfully set editing status, False if someone else is editing"""
+        result = self.execute_with_retry('''
+            SELECT currently_editing 
+            FROM notes 
+            WHERE id = ?
+        ''', (note_id,)).fetchone()
+        
+        if result and result[0] and result[0] != user_id:
+            return False, result[0]  # Return False and who is editing
+            
+        self.execute_with_retry('''
+            UPDATE notes 
+            SET currently_editing = ?
+            WHERE id = ?
+        ''', (user_id, note_id))
+        return True, None
+
+    def clear_note_editing_status(self, note_id, user_id):
+        """Clear editing status only if this user was the editor"""
+        self.execute_with_retry('''
+            UPDATE notes 
+            SET currently_editing = NULL
+            WHERE id = ? AND currently_editing = ?
+        ''', (note_id, user_id))
+
+    def get_note_editing_status(self, note_id):
+        """Returns who is currently editing the note, if anyone"""
+        result = self.execute_with_retry('''
             SELECT currently_editing 
             FROM notes 
             WHERE id = ?
@@ -205,7 +261,10 @@ class Database:
     def close(self):
         """Close the database connection"""
         if self.connection:
-            self.connection.close()
+            try:
+                self.connection.close()
+            except:
+                pass  # Ignore errors when closing
             self.connection = None
 
     def __del__(self):
