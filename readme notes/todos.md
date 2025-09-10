@@ -4,7 +4,7 @@
 ## HIGH PRIORITY
 - GET V1.0.0 working by:
     - properly connect SQL
-    - make sure database actually saves data added
+    - select Board drop down shows ID instead of name
     - add notes section
     - add timestamping to add notes or changed notes
 

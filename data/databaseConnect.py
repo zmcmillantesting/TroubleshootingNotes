@@ -3,7 +3,7 @@ import sys, os
 
 
 def init_db():
-    db_path = r"P:\EMS_TR_PATH\Shared_notes" #TODO: create path and file if not exist
+    db_path = r"P:\EMS_TR_PATH\Shared_notes"
     os.makedirs(db_path, exist_ok=True)
     connection = sql.connect(os.path.join(db_path, "shard_notes.db"))
     cursor = connection.cursor()
