@@ -2,15 +2,15 @@
 
 
 ## HIGH PRIORITY
-- GET V1.0.0 working by:
-    - properly connect SQL
-    - select Board drop down shows ID instead of name
-    - add notes section
-    - add timestamping to add notes or changed notes
+- debug and clean up 
+    - perform testing to see where the application breaks and how to resolve. NO COPILOT HELP
+    - review code and clean up and sloppy AI code
+    - verify application works on different computers
+    - "database is locked" failure
+
 
 ## NEW FEATURES
-- user tracking?
-- note removal
-- company, board or note title editability/removal
+- too many dinging noises
+    - remove pop ups unless absolutely neccessary
 
 
