@@ -1,0 +1,9 @@
+2025-09-15 15:23:21,226 - utils.logger - INFO - Logging initialized. Log file: logs\app_20250915_152321.log
+2025-09-15 15:23:21,226 - __main__ - INFO - Starting Troubleshooting Notes Application
+2025-09-15 15:23:21,253 - backend.database_manager - INFO - Database initialized successfully
+2025-09-15 15:23:21,658 - __main__ - INFO - Application started successfully
+2025-09-15 15:23:42,760 - backend.database_manager - INFO - Deleted company ID 1
+2025-09-15 15:23:51,425 - backend.database_manager - INFO - Deleted company ID 3
+2025-09-15 15:24:09,562 - backend.database_manager - INFO - Added company: EMS Testing and Repair
+2025-09-15 15:24:26,385 - backend.database_manager - ERROR - Database connection error: FOREIGN KEY constraint failed
+2025-09-15 15:24:26,385 - backend.database_manager - WARNING - Board already exists:  for company ID storage
