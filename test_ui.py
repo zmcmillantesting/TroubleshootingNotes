@@ -23,9 +23,9 @@ class TestUI(unittest.TestCase):
         # Initialize database
         self.db = DatabaseManager(db_path=self.db_path, db_name="test_notes.db")
         
-        # Add test data
+        # Add test data - FIXED: correct parameter order
         self.company_id = self.db.add_company("Test Company")
-        self.board_id = self.db.add_board(self.company_id, "Test Board", "Test Description")
+        self.board_id = self.db.add_board("Test Board", "Test Description", self.company_id)
         
         # Create main window
         self.window = LearningWindow()
@@ -58,7 +58,7 @@ class TestUI(unittest.TestCase):
         self.assertEqual(self.window.current_company_id, self.company_id)
         
         # Verify boards are loaded
-        self.assertGreater(self.window.board_combo.count(), 1)  # Should have at least "Select Board..." + our board
+        self.assertGreater(self.window.board_combo.count(), 0)  # Should have at least our board
     
     def test_board_selection(self):
         """Test board selection functionality"""

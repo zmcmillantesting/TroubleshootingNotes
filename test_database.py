@@ -58,8 +58,8 @@ class TestDatabaseManager(unittest.TestCase):
         # First add a company
         company_id = self.db.add_company("Test Company")
         
-        # Test add board
-        board_id = self.db.add_board("Test Board", "Test Description" ,company_id)
+        # Test add board - FIXED: correct parameter order (name, description, company_id)
+        board_id = self.db.add_board("Test Board", "Test Description", company_id)
         self.assertIsNotNone(board_id)
         
         # Test get boards
@@ -67,9 +67,9 @@ class TestDatabaseManager(unittest.TestCase):
         self.assertEqual(len(boards), 1)
         self.assertEqual(boards[0][1], "Test Board")
         
-        # Test duplicate board
+        # Test duplicate board - FIXED: correct parameter order
         with self.assertRaises(ValueError):
-            self.db.add_board(company_id, "Test Board")
+            self.db.add_board("Test Board", "Another Description", company_id)
             
         # Test delete board
         result = self.db.delete_board(board_id)
@@ -83,7 +83,7 @@ class TestDatabaseManager(unittest.TestCase):
         """Test note CRUD operations"""
         # First add a company and board
         company_id = self.db.add_company("Test Company")
-        board_id = self.db.add_board(company_id, "Test Board")
+        board_id = self.db.add_board("Test Board", "Test Description", company_id)
         
         # Test add note
         note_id = self.db.add_note(
@@ -130,7 +130,7 @@ class TestDatabaseManager(unittest.TestCase):
         """Test note search functionality"""
         # First add a company and board
         company_id = self.db.add_company("Test Company")
-        board_id = self.db.add_board(company_id, "Test Board")
+        board_id = self.db.add_board("Test Board", "Test Description", company_id)
         
         # Add test notes
         self.db.add_note(
