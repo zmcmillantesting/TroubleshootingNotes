@@ -16,6 +16,7 @@ class ModernCard(QFrame):
         self.init_card()
 
     def init_card(self):
+
         self.setFrameStyle(QFrame.Box)
         self.setStyleSheet("""
             QFrame {
@@ -45,11 +46,13 @@ class ModernCard(QFrame):
             QLabel {
                 background: #e3f2fd;
                 color: #1976d2;
-                padding: 4px 8px;
+                padding: 6px 6px 6px 6px;
                 border-radius: 12px;
-                font-size: 10px;
+                font-size: 12px;
                 font-weight: 500;
-                max-width: 120px;
+                max-width: none;
+                min-width: 80px;
+                text-align: center;
             }
         """)
         topic_label.setWordWrap(True)
@@ -125,3 +128,38 @@ class ModernCard(QFrame):
         layout.addWidget(title_label)
         layout.addWidget(content_label)
         layout.addLayout(footer_layout)
+
+    def mousePressEvent(self, event):
+        """Handle clicks on the card"""
+        self.is_selected = True
+        self.note_selected.emit(self.note_data['id'])  # emit the note ID
+        super().mousePressEvent(event)
+        
+    def set_selected(self, selected: bool):
+        """Update card selection state and style"""
+        self.is_selected = selected
+        if selected:
+            self.setStyleSheet("""
+                QFrame {
+                    background: #f0f8ff;
+                    border: 2px solid #3498db;
+                    border-radius: 12px;
+                    margin: 5px;
+                }
+                QFrame:hover {
+                    border-color: #3498db;
+                }
+            """)
+        else:
+            self.setStyleSheet("""
+                QFrame {
+                    background: white;
+                    border: 2px solid #e9ecef;
+                    border-radius: 12px;
+                    margin: 5px;
+                }
+                QFrame:hover {
+                    border-color: #3498db;
+                }
+            """)
+
