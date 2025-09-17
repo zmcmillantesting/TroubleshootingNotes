@@ -251,7 +251,11 @@ class LearningWindow(QMainWindow):
 
     def refresh_notes(self, topic_filter=None):
         """Fixed refresh_notes method that updates topics sidebar"""
-
+        if not self.current_board_id:
+            return
+        
+        self.clear_notes_display()
+        
         # Clear current content
         if hasattr(self, 'notes_container'):
             self.notes_container.deleteLater()
@@ -302,8 +306,15 @@ class LearningWindow(QMainWindow):
                 self.notes_layout.addWidget(cards_container)
             else:
                 #TODO: Create table view (you'll need to implement this)
-                self.notes_layout.addWidget(QLabel("Table view not implemented yet"))
+                table = QTableWidget()
+                table.setColumnCount(6)
+                table.setHorizontalHeaderLabels(['Title', 'Topic', 'Priority', 'Created By', 'Creation Date', 'Content Preview'])
+                table.setSelectionBehavior(QAbstractItemView.SelectRows)
+                table.setSelectionMode(QAbstractItemView.SingleSelection)
 
+                self.notes_layout.addWidget(table)
+
+                table.itemSelectionChanged.connect(self.on_table_selection_changed)
         # Add stretch to push content to tops
         self.notes_layout.addStretch()
 
@@ -318,8 +329,20 @@ class LearningWindow(QMainWindow):
         else:
             self.content_layout.addWidget(self.notes_container)
 
+        # Update cards creation
+        for note in notes:
+            card = ModernCard(note)
+            card.note_selected.connect(self.on_note_selected)
+            card.note_double_clicked.connect(self.open_note_viewer)
+            cards_layout.addChildWidget(card)
         # IMPORTANT: Refresh topics sidebar after loading notes
         self.refresh_topics()
+
+    def on_table_selection_changed(self):
+        if hasattr(self, 'notes'):
+            current_row = self.notes.currentRow()
+            if current_row >= 0:
+                note_id_item = self.notes.data(Qt.UserRole)
 
     def on_note_selected(self, note_id):
         """Handle note selection"""
@@ -387,6 +410,55 @@ class LearningWindow(QMainWindow):
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to add note: {str(e)}")
 
+    def create_notes_table(self, notes):
+        """Create and populate the notes table"""
+        table = QTableWidget()
+        table.setColumnCount(6)
+        table.setHorizontalHeaderLabels(['Title', 'Topic', 'Priority', 'Created By', 'Date', 'Preview'])
+
+        # Define column indices for clarity
+        TITLE_COL = 0
+        TOPIC_COL = 1
+        PRIORITY_COL = 2  # This is what we needed!
+        CREATED_BY_COL = 3
+        DATE_COL = 4
+        PREVIEW_COL = 5
+
+        # Set table properties
+        table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        table.setSelectionMode(QAbstractItemView.SingleSelection)
+
+        # Populate data
+        table.setRowCount(len(notes))
+        for row, note in enumerate(notes):
+            # Title column (store note ID here)
+            title_item = QTableWidgetItem(note['title'])
+            title_item.setData(Qt.UserRole, note['id'])
+            table.setItem(row, TITLE_COL, title_item)
+
+            # Topic column
+            table.setItem(row, TOPIC_COL, QTableWidgetItem(note['topic']))
+
+            # Priority column with color
+            self.set_priority_cell_color(table, row, PRIORITY_COL, note['priority'])
+
+            # Other columns...
+            table.setItem(row, CREATED_BY_COL, QTableWidgetItem(note['created_by']))
+            # ... etc
+
+        return table
+
+    def set_priority_cell_color(self, table, row, priority_col_index, priority):
+        """Set priority cell background color"""
+        priority_colors = {1: "#27ae60", 2: "#f39c12", 3: "#e67e22", 4: "#e74c3c", 5: "#8e44ad"}
+        color = priority_colors.get(priority, "#6c757d")
+
+        priority_item = QTableWidgetItem(f"P{priority}")
+        priority_item.setBackground(QColor(color))
+        priority_item.setForeground(QColor("white"))
+        priority_item.setTextAlignment(Qt.AlignCenter)
+        table.setItem(row, priority_col_index, priority_item)
+
     def edit_selected_note(self):
         if not self.current_user or self.current_user == "Anonymous":
             QMessageBox.warning(self, "User ID Required", "Please enter your User ID before editing a note.")
@@ -396,7 +468,7 @@ class LearningWindow(QMainWindow):
             QMessageBox.warning(self, "Warning", "Please select a note first")
             return
 
-        note = self.db.get_note(self.selected_note_id)
+        note = self.db.get_notes(self.selected_note_id)
         if note:
             dialog = NoteDialog(self, note)
             if dialog.exec_():
@@ -504,6 +576,15 @@ class LearningWindow(QMainWindow):
                 self.topics_layout.addWidget(topic_button)
         except Exception as e:
             print(f"Error Refreshing topics: {e}")
+
+    def open_note_viewer(self, note_id):
+        print(f"Double-clicked note ID: {note_id}")
+
+    def clear_notes_display(self):
+        if hasattr(self, 'notes_container') and self.notes_container:
+            self.content_layout.removeWidget(self.notes_container)
+            self.notes_container.deleteLater()
+            self.notes_container = None
 
     def on_company_changed(self, index):
         """Handle company selection change"""

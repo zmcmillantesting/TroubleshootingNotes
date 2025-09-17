@@ -6,6 +6,7 @@ from datetime import datetime
 
 class ModernCard(QFrame):
     note_selected = pyqtSignal(int)
+    note_double_clicked = pyqtSignal(int)
     
     def __init__(self, note_data, parent=None):
         super().__init__(parent)
@@ -168,6 +169,14 @@ class ModernCard(QFrame):
                     border-color: #3498db;
                 }
             """)
+
+    def mouseDoubleClickEvent(self, event):
+        """Handle double-click to open note for viewing/editing"""
+        if event.button() == Qt.LeftButton:
+            # Emit a different signal for double-click
+            self.note_double_clicked.emit(self.note_data['id'])
+        super().mouseDoubleClickEvent(event)
+
 
 class TopicButton(QPushButton):
     """Custom topic button with emoji and styling"""

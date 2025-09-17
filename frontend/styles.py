@@ -214,6 +214,38 @@ TOOLBAR_STYLE = """
         padding: 15px;
     }
 """
+# table
+TABLE_STYLE = """
+QTableWidget {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    gridline-color: #f8f9fa;
+    font-size: 14px;
+}
+QTableWidget::item {
+    padding: 12px 8px;
+    border-bottom: 1px solid #f8f9fa;
+}
+QTableWidget::item:selected {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+QTableWidget::item:hover {
+    background: #f8f9fa;
+}
+QHeaderView::section {
+    background: #f8f9fa;
+    color: #6c757d;
+    padding: 12px 8px;
+    border: none;
+    border-bottom: 2px solid #e9ecef;
+    font-weight: bold;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+"""
 
 # Topic buttons
 def topic_button_style(color):
