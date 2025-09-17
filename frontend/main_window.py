@@ -251,9 +251,6 @@ class LearningWindow(QMainWindow):
 
     def refresh_notes(self, topic_filter=None):
         """Fixed refresh_notes method that updates topics sidebar"""
-        if not self.current_board_id:
-            raise TypeError 
-            return
 
         # Clear current content
         if hasattr(self, 'notes_container'):
@@ -304,7 +301,7 @@ class LearningWindow(QMainWindow):
 
                 self.notes_layout.addWidget(cards_container)
             else:
-                # Create table view (you'll need to implement this)
+                #TODO: Create table view (you'll need to implement this)
                 self.notes_layout.addWidget(QLabel("Table view not implemented yet"))
 
         # Add stretch to push content to tops
@@ -348,6 +345,9 @@ class LearningWindow(QMainWindow):
         self.refresh_notes()
 
     def create_new_note(self):
+        if not self.current_user or self.current_user == "Anonymous":
+            QMessageBox.warning(self, "User ID Required", "Please enter your User ID before creating a note.")
+            return
         """Fixed create_new_note method that populates topics"""
         if not self.current_board_id:
             QMessageBox.warning(self, "Warning", "Please select a board first")
@@ -388,6 +388,9 @@ class LearningWindow(QMainWindow):
                 QMessageBox.critical(self, "Error", f"Failed to add note: {str(e)}")
 
     def edit_selected_note(self):
+        if not self.current_user or self.current_user == "Anonymous":
+            QMessageBox.warning(self, "User ID Required", "Please enter your User ID before editing a note.")
+            return
         """Edit the selected note"""
         if not self.selected_note_id:
             QMessageBox.warning(self, "Warning", "Please select a note first")
@@ -402,6 +405,9 @@ class LearningWindow(QMainWindow):
                 self.refresh_notes()
 
     def archive_selected_note(self): 
+        if not self.current_user or self.current_user == "Anonymous":
+            QMessageBox.warning(self, "User ID Required", "Please enter your User ID before archiving a note.")
+            return
         """Archive the selected note"""
         if not self.selected_note_id:
             QMessageBox.warning(self, "Warning", "Please select a note first")
@@ -512,6 +518,9 @@ class LearningWindow(QMainWindow):
             self.refresh_notes()
 
     def add_company(self):
+        if not self.current_user or self.current_user == "Anonymous":
+            QMessageBox.warning(self, "User ID Required", "Please enter your User ID before adding a company.")
+            return
         """Add a new company"""
         dialog = CompanyDialog(self)
         if dialog.exec_():
@@ -521,6 +530,9 @@ class LearningWindow(QMainWindow):
                 self.refresh_companies()
 
     def delete_company(self):
+        if not self.current_user or self.current_user == "Anonymous":
+            QMessageBox.warning(self, "User ID Required", "Please enter your User ID before deleting a company.")
+            return
         """Delete the selected company"""
         if not self.current_company_id:
             QMessageBox.warning(self, "Warning", "Please select a company first")
@@ -543,6 +555,9 @@ class LearningWindow(QMainWindow):
                 QMessageBox.critical(self, "Error", f"Failed to delete company: {str(e)}")
 
     def add_board(self):
+        if not self.current_user or self.current_user == "Anonymous":
+            QMessageBox.warning(self, "User ID Required", "Please enter your User ID before adding a board.")
+            return
         """Add a new board"""
         if not self.current_company_id:
             QMessageBox.warning(self, "Warning", "Please select a company first")
@@ -566,6 +581,9 @@ class LearningWindow(QMainWindow):
                 QMessageBox.critical(self, "Error", f"Failed to add board: {str(e)}")
 
     def delete_board(self):
+        if not self.current_user or self.current_user == "Anonymous":
+            QMessageBox.warning(self, "User ID Required", "Please enter your User ID before deleting a board.")
+            return
         """Delete the selected board"""
         if not self.current_board_id:
             QMessageBox.warning(self, "Warning", "Please select a board first")

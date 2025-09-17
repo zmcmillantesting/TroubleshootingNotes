@@ -1,0 +1,6 @@
+2025-09-17 09:59:58,228 - utils.logger - INFO - Logging initialized. Log file: logs\app_20250917_095958.log
+2025-09-17 09:59:58,228 - __main__ - INFO - Starting Troubleshooting Notes Application
+2025-09-17 09:59:58,255 - backend.database_manager - INFO - Database initialized successfully
+2025-09-17 09:59:58,660 - __main__ - INFO - Application started successfully
+2025-09-17 10:00:39,951 - backend.database_manager - INFO - Added board: Printers for company ID 2
+2025-09-17 10:01:40,744 - backend.database_manager - INFO - Added note 'Brady I7500' to board ID 2

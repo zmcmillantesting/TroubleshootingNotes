@@ -44,11 +44,13 @@ class ModernCard(QFrame):
             QLabel {
                 background: #e3f2fd;
                 color: #1976d2;
-                padding: 6px 10px;
+                padding: 6px 6px 6px 6px;
                 border-radius: 12px;
-                font-size: 10px;
+                font-size: 12px;
                 font-weight: 500;
+                text-align: center;
                 min-height: 16px;
+                min-width: 80px;
                 max-width: none;
             }
         """)
