@@ -259,84 +259,6 @@ class LearningWindow(QMainWindow):
 
         return toolbar
 
-<<<<<<< HEAD
-    def refresh_notes(self, topic_filter=None):
-        """Fixed refresh_notes method that updates topics sidebar"""
-        if not self.current_board_id:
-            raise TypeError 
-            return
-
-        # Clear current content
-        if hasattr(self, 'notes_container'):
-            self.notes_container.deleteLater()
-
-        # Create scroll area for notes
-        self.notes_container = QScrollArea()
-        self.notes_container.setWidgetResizable(True)
-        self.notes_container.setStyleSheet("QScrollArea { border: none; background: transparent; }")
-
-        # Create container widget for notes
-        notes_widget = QWidget()
-        self.notes_layout = QVBoxLayout(notes_widget)
-        self.notes_layout.setSpacing(15)
-        self.notes_layout.setContentsMargins(10, 10, 10, 10)
-        self.notes_layout.setAlignment(Qt.AlignTop)
-
-        # Get notes from database
-        notes = self.db.get_notes(self.current_board_id)
-
-        if not notes:
-            no_notes_label = QLabel("No notes found for this board")
-            no_notes_label.setAlignment(Qt.AlignCenter)
-            no_notes_label.setStyleSheet("color: #6c757d; font-size: 16px; padding: 40px;")
-            self.notes_layout.addWidget(no_notes_label)
-        else:
-            # Filter by topic if specified
-            if topic_filter and topic_filter != "All Topics":
-                notes = [note for note in notes if note['topic'] == topic_filter]
-
-            # Filter by search text if any
-            search_text = self.search_input.text().lower()
-            if search_text:
-                notes = [note for note in notes 
-                        if search_text in note['title'].lower() 
-                        or search_text in note['content'].lower()]
-
-            if self.current_view_mode == "cards":
-                # Create cards view
-                cards_container = QWidget()
-                cards_layout = QVBoxLayout(cards_container)
-                cards_layout.setSpacing(15)
-
-                for note in notes:
-                    card = ModernCard(note)
-                    card.note_selected.connect(self.on_note_selected)
-                    cards_layout.addWidget(card)
-
-                self.notes_layout.addWidget(cards_container)
-            else:
-                # Create table view (you'll need to implement this)
-                self.notes_layout.addWidget(QLabel("Table view not implemented yet"))
-
-        # Add stretch to push content to tops
-        self.notes_layout.addStretch()
-
-        # Set the widget and add to layout
-        self.notes_container.setWidget(notes_widget)
-
-        # Replace current content display
-        if hasattr(self, 'content_display'):
-            self.content_layout.replaceWidget(self.content_display, self.notes_container)
-            self.content_display.deleteLater()
-            self.content_display = self.notes_container
-        else:
-            self.content_layout.addWidget(self.notes_container)
-
-        # IMPORTANT: Refresh topics sidebar after loading notes
-        self.refresh_topics()
-
-=======
->>>>>>> V2
     def on_note_selected(self, note_id):
         """Handle note selection and enable edit button"""
         self.selected_note_id = note_id
@@ -410,20 +332,11 @@ class LearningWindow(QMainWindow):
         self.refresh_notes()
 
     def create_new_note(self):
-        """Fixed create_new_note method that populates topics"""
         if not self.current_board_id:
             QMessageBox.warning(self, "Warning", "Please select a board first")
             return
 
-        # Get existing topics for dropdown
-        try:
-            existing_topics = self.db.get_topics(self.current_board_id)
-            print(f"Existing topics for dropdown: {existing_topics}")  # Debug
-        except Exception as e:
-            print(f"Error getting topics: {e}")
-            existing_topics = []
-
-        dialog = NoteDialog(self, topics=existing_topics)
+        dialog = NoteDialog(self)
         if dialog.exec_():
             note_data = dialog.get_note_data()
 
@@ -445,10 +358,9 @@ class LearningWindow(QMainWindow):
                     priority=priority
                 )
                 self.refresh_notes()
-                print(f"Added note with topic: {topic}")  # Debug
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to add note: {str(e)}")
-
+                
     def edit_selected_note(self):
         """Edit the selected note"""
         if not self.selected_note_id:
@@ -499,11 +411,6 @@ class LearningWindow(QMainWindow):
         )
 
         if reply == QMessageBox.Yes:
-<<<<<<< HEAD
-            self.db.archive_note(self.selected_note_id, user_id=self.current_user)
-            self.selected_note_id = None
-            self.refresh_notes()
-=======
             try:
                 # Pass both note ID and user ID
                 self.db.archive_note(self.selected_note_id, self.current_user)
@@ -515,7 +422,6 @@ class LearningWindow(QMainWindow):
     def toggle_archived_notes(self, state):
         self.show_archived = (state == Qt.Checked)
         self.refresh_notes
->>>>>>> V2
 
     def refresh_companies(self):
         """Refresh the company dropdown"""
@@ -665,52 +571,6 @@ class LearningWindow(QMainWindow):
             self.content_layout.addWidget(self.notes_container)
         # ... (keep all the other functional methods like refresh_companies, refresh_boards, etc.)
         self.refresh_topics()
-
-    def refresh_topics(self):
-        if not self.current_board_id:
-            return
-        
-        for i in reversed(range(self.topics_layout.count())):
-            child = self.topics_layout.itemAt(i).widget()
-            if child and child.text() != "📋 All Topics":
-                child.deleteLater()
-        
-        try:
-            topics = self.db.get_topics(self.current_board_id)
-            print(f"Found topics: {topics} ")
-
-            topic_colors = {
-                'Troubleshooting': '#3498db',
-                'Testing': '#e74c3c',
-                'Labeling': '#f39c12',
-                'General': '#9b59b6',
-                'Miscellaneous': '#95a5a6'
-            }
-
-            for topic in topics:
-                color = topic_colors.get(topic, "#6c757d")
-                topic_button = QPushButton(f"📝 {topic}")
-                topic_button.setStyleSheet("""
-                    QPushButton {{
-                        background: {color};
-                        color: white;
-                        border: none;
-                        padding: 8px 12px;
-                        border-radius: 20px;
-                        font-size: 12px;
-                        font-weight: 500;
-                        text-align: left;
-                        min-height: 24px;
-                    }}
-                    QPushButton:hover {{
-                        background: {color};
-                        opacity: 0.8;
-                    }}
-                """)
-                topic_button.clicked.connect(lambda checked, t=topic: self.refresh_notes(t))
-                self.topics_layout.addWidget(topic_button)
-        except Exception as e:
-            print(f"Error Refreshing topics: {e}")
 
     def on_company_changed(self, index):
         """Handle company selection change"""
