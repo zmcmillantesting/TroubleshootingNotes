@@ -191,6 +191,49 @@ class NoteDialog(QDialog):
         return {
             'topic': topic or 'General',
             'title': self.title_input.text().strip(),
+<<<<<<< HEAD
             'content': self.content_input.toPlainText().strip(),
             'priority': self.priority_combo.currentIndex() + 1
         }
+=======
+            'topic': self.topic_input.currentText().strip(),
+            'content': self.content_input.toPlainText(),
+            'priority': self.priority_input.value()
+        }
+    
+# Dialog for checking note history
+class NoteHistoryDialog(QDialog):
+    def __init__(self, history, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("📜 Note History")
+        self.setMinimumSize(600,400)
+
+        layout = QVBoxLayout(self)
+
+        if not history:
+            layout.addWidget(QLabel("No history found for this note"))
+            return
+    
+        table = QTableWidget(len(history), 7)
+        table.setHorizontalHeaderLabels([
+            "Action", "User", "Timestamp", "Old Title", "Old Content", "Old Topic", "Old Priority"
+        ])
+        table.horizontalHeader().setStretchLastSection(True)
+        table.setEditTriggers(QTableWidget.NoEditTriggers)
+
+        for row_idx, row in enumerate(history):
+            table.setItem(row_idx, 0, QTableWidgetItem(row["action"]))
+            table.setItem(row_idx, 1, QTableWidgetItem(row["user_id"]))
+            table.setItem(row_idx, 2, QTableWidgetItem(row["timestamp"]))
+            table.setItem(row_idx, 3, QTableWidgetItem(row["old_title"] or ""))
+            table.setItem(row_idx, 4, QTableWidgetItem((row["old_content"][:50] + "...") if row["old_content"] else ""))
+            table.setItem(row_idx, 5, QTableWidgetItem(row["old_topic"] or ""))
+            table.setItem(row_idx, 6, QTableWidgetItem(str(row["old_priority"]) if row["old_priority"] else ""))
+
+        layout.addWidget(table)
+        
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(self.accept)
+        layout.addWidget(close_btn, alignment=Qt.AlignRight)
+        
+>>>>>>> V2

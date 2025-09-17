@@ -87,10 +87,27 @@ class DatabaseManager:
                     )
                 """)
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS note_history (
+                    history_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    note_id INTEGER NOT NULL,
+                    action TEXT NOT NULL,          -- 'created', 'updated', 'archived'
+                    user_id TEXT NOT NULL,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    old_title TEXT,
+                    old_content TEXT,
+                    old_topic TEXT,
+                    old_priority INTEGER,
+                    FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE
+                    )           
+                """)            
+
+
                 # Create indexes for better performance
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_board_id ON notes(board_id)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_topic ON notes(topic)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_boards_company_id ON boards(company_id)")
+                
 
                 conn.commit()
                 logger.info("Database initialized successfully")
@@ -255,6 +272,24 @@ class DatabaseManager:
             logger.error(f"Failed to get notes for board ID {board_id}: {e}")
             raise
 
+    def get_note_history(self, note_id):
+        """Get full history of a note"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT action, user_id, timestamp, old_title, old_content, old_topic, old_priority
+                    FROM note_history
+                    WHERE note_id = ?
+                    ORDER BY timestamp DESC
+                """, (note_id))
+
+                columns = [desc[0] for desc in cursor.description]
+                return [dict(zip(columns, row)) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Failed to fetch note history for note {note_id}: {e}")
+            raise
+
     def get_topics(self, board_id):
         """Get all unique topics for a board"""
         try:
@@ -290,8 +325,22 @@ class DatabaseManager:
 
                 params.append(note_id)
 
+                cursor.execute("SELECT title, content, topic, priority FROM notes WHERE id = ?", (note_id,))
+                old = cursor.fetchone()
                 query = f"UPDATE notes SET {', '.join(updates)} WHERE id = ?"
                 cursor.execute(query, params)
+                print("DEBUG history insert parms: ", (note_id, user_id, old))
+                cursor.execute("""
+                    INSERT INTO note_history 
+                    (note_id, action, user_id, old_title, old_content, old_topic, old_priority) 
+                    VALUES (?, 'updated', ?, ?, ?, ?, ?)
+                """, (note_id, 
+                    str(user_id),
+                    str(old[0]) if old[0] is not None else None,
+                    str(old[1])if old[1] is not None else None,
+                    str(old[2])if old[2] is not None else None, 
+                    str(old[3])if old[3] is not None else None))
+
                 conn.commit()
                 
                 logger.info(f"Updated note ID {note_id}")
@@ -305,11 +354,20 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
+
                 cursor.execute("""
-                    UPDATE notes 
-                    SET is_archived = TRUE, last_modified_by = ?, updated_at = CURRENT_TIMESTAMP 
+                    INSERT INTO note_history (note_id, action, user_id)
+                    VALUES (?, 'archived', ?)
+                """, (note_id, user_id))
+
+                cursor.execute("""
+                    UPDATE notes
+                    SET is_archived = TRUE,
+                        last_modified_by = ?,
+                        updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
-                """, (user_id, note_id))
+                    """, (user_id, note_id))
+                
                 conn.commit()
                 logger.info(f"Archived note ID {note_id}")
                 return cursor.rowcount > 0

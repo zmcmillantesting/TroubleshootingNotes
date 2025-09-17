@@ -1,0 +1,6 @@
+2025-09-17 17:12:00,025 - utils.logger - INFO - Logging initialized. Log file: logs\app_20250917_171200.log
+2025-09-17 17:12:00,025 - __main__ - INFO - Starting Troubleshooting Notes Application
+2025-09-17 17:12:00,112 - backend.database_manager - INFO - Database initialized successfully
+2025-09-17 17:12:00,638 - __main__ - INFO - Application started successfully
+2025-09-17 17:12:09,891 - backend.database_manager - ERROR - Database connection error: near "last_modified_by": syntax error
+2025-09-17 17:12:09,923 - backend.database_manager - ERROR - Failed to archive note ID 3: near "last_modified_by": syntax error

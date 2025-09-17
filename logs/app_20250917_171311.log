@@ -1,0 +1,8 @@
+2025-09-17 17:13:11,735 - utils.logger - INFO - Logging initialized. Log file: logs\app_20250917_171311.log
+2025-09-17 17:13:11,735 - __main__ - INFO - Starting Troubleshooting Notes Application
+2025-09-17 17:13:11,788 - backend.database_manager - INFO - Database initialized successfully
+2025-09-17 17:13:12,292 - __main__ - INFO - Application started successfully
+2025-09-17 17:13:16,421 - backend.database_manager - INFO - Archived note ID 3
+2025-09-17 17:13:20,413 - backend.database_manager - INFO - Archived note ID 2
+2025-09-17 17:13:23,250 - backend.database_manager - INFO - Archived note ID 1
+2025-09-17 17:13:27,237 - backend.database_manager - INFO - Deleted company ID 1

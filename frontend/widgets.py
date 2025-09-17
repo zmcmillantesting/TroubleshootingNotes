@@ -13,7 +13,12 @@ class ModernCard(QFrame):
         self.is_selected = False
         self.setup_ui()
 
+<<<<<<< HEAD
     def setup_ui(self):
+=======
+    def init_card(self):
+
+>>>>>>> V2
         self.setFrameStyle(QFrame.Box)
         self.setStyleSheet("""
             QFrame {
@@ -44,12 +49,22 @@ class ModernCard(QFrame):
             QLabel {
                 background: #e3f2fd;
                 color: #1976d2;
+<<<<<<< HEAD
                 padding: 6px 10px;
+=======
+                padding: 6px 6px 6px 6px;
+>>>>>>> V2
                 border-radius: 12px;
-                font-size: 10px;
+                font-size: 12px;
                 font-weight: 500;
+<<<<<<< HEAD
                 min-height: 16px;
                 max-width: none;
+=======
+                max-width: none;
+                min-width: 80px;
+                text-align: center;
+>>>>>>> V2
             }
         """)
         # Remove max width constraint that was causing cut-off
@@ -136,6 +151,7 @@ class ModernCard(QFrame):
         layout.addLayout(footer_layout)
 
     def mousePressEvent(self, event):
+<<<<<<< HEAD
         """Handle mouse clicks on the card"""
         if event.button() == Qt.LeftButton:
             self.note_selected.emit(self.note_data['id'])
@@ -149,10 +165,30 @@ class ModernCard(QFrame):
             self.setStyleSheet("""
                 QFrame {
                     background: #e3f2fd;
+=======
+        """Handle clicks on the card"""
+        self.is_selected = True
+        self.note_selected.emit(self.note_data['id'])  # emit the note ID
+        super().mousePressEvent(event)
+        
+    def set_selected(self, selected: bool):
+        """Update card selection state and style"""
+        self.is_selected = selected
+        if selected:
+            self.setStyleSheet("""
+                QFrame {
+                    background: #f0f8ff;
+>>>>>>> V2
                     border: 2px solid #3498db;
                     border-radius: 12px;
                     margin: 5px;
                 }
+<<<<<<< HEAD
+=======
+                QFrame:hover {
+                    border-color: #3498db;
+                }
+>>>>>>> V2
             """)
         else:
             self.setStyleSheet("""
@@ -167,6 +203,7 @@ class ModernCard(QFrame):
                 }
             """)
 
+<<<<<<< HEAD
 class TopicButton(QPushButton):
     """Custom topic button with emoji and styling"""
     
@@ -223,3 +260,5 @@ class TopicButton(QPushButton):
         
         # Convert back to hex
         return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+=======
+>>>>>>> V2
