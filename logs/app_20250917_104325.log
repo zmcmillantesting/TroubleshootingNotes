@@ -1,0 +1,4 @@
+2025-09-17 10:43:25,070 - utils.logger - INFO - Logging initialized. Log file: logs\app_20250917_104325.log
+2025-09-17 10:43:25,070 - __main__ - INFO - Starting Troubleshooting Notes Application
+2025-09-17 10:43:25,100 - backend.database_manager - INFO - Database initialized successfully
+2025-09-17 10:43:25,494 - __main__ - INFO - Application started successfully
