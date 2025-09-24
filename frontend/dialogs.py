@@ -166,20 +166,6 @@ class NoteDialog(QDialog):
         
         button_layout.addWidget(self.ok_button)
         button_layout.addWidget(self.cancel_button)
-<<<<<<< HEAD
-        layout.addLayout(button_layout)
-        
-        self.title_input.setFocus()
-
-    def get_note_data(self):
-        return {
-            'title': self.title_input.text().strip(),
-            'topic': self.topic_input.currentText().strip(),
-            'content': self.content_input.toPlainText(),
-            'priority': self.priority_input.value()
-        }
-    
-=======
         layout.addLayout(button_layout)
         
         self.title_input.setFocus()
@@ -370,49 +356,17 @@ class NoteViewerDialog(QDialog):
         """Signal that the user wants to edit this note"""
         self.done(2)  # Return code 2 indicates edit was requested
 
->>>>>>> V2.1.0
 # Dialog for checking note history
 class NoteHistoryDialog(QDialog):
     def __init__(self, history, parent=None):
         super().__init__(parent)
         self.setWindowTitle("📜 Note History")
-<<<<<<< HEAD
-        self.setMinimumSize(600,400)
-=======
         self.setMinimumSize(800, 400)
         self.setModal(True)
->>>>>>> V2.1.0
 
         layout = QVBoxLayout(self)
 
         if not history:
-<<<<<<< HEAD
-            layout.addWidget(QLabel("No history found for this note"))
-            return
-    
-        table = QTableWidget(len(history), 7)
-        table.setHorizontalHeaderLabels([
-            "Action", "User", "Timestamp", "Old Title", "Old Content", "Old Topic", "Old Priority"
-        ])
-        table.horizontalHeader().setStretchLastSection(True)
-        table.setEditTriggers(QTableWidget.NoEditTriggers)
-
-        for row_idx, row in enumerate(history):
-            table.setItem(row_idx, 0, QTableWidgetItem(row["action"]))
-            table.setItem(row_idx, 1, QTableWidgetItem(row["user_id"]))
-            table.setItem(row_idx, 2, QTableWidgetItem(row["timestamp"]))
-            table.setItem(row_idx, 3, QTableWidgetItem(row["old_title"] or ""))
-            table.setItem(row_idx, 4, QTableWidgetItem((row["old_content"][:50] + "...") if row["old_content"] else ""))
-            table.setItem(row_idx, 5, QTableWidgetItem(row["old_topic"] or ""))
-            table.setItem(row_idx, 6, QTableWidgetItem(str(row["old_priority"]) if row["old_priority"] else ""))
-
-        layout.addWidget(table)
-        
-        close_btn = QPushButton("Close")
-        close_btn.clicked.connect(self.accept)
-        layout.addWidget(close_btn, alignment=Qt.AlignRight)
-        
-=======
             no_history_label = QLabel("No history found for this note")
             no_history_label.setAlignment(Qt.AlignCenter)
             no_history_label.setStyleSheet("""
@@ -537,4 +491,3 @@ class NoteHistoryDialog(QDialog):
         button_layout.addWidget(close_btn)
         
         layout.addLayout(button_layout)
->>>>>>> V2.1.0

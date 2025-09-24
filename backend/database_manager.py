@@ -111,19 +111,11 @@ class DatabaseManager:
                     )           
                 """)            
 
-<<<<<<< HEAD
-
-=======
->>>>>>> V2.1.0
                 # Create indexes for better performance
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_board_id ON notes(board_id)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_topic ON notes(topic)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_boards_company_id ON boards(company_id)")
                 
-<<<<<<< HEAD
-
-=======
->>>>>>> V2.1.0
                 conn.commit()
                 logger.info("Database initialized successfully")
         except Exception as e:
@@ -306,11 +298,7 @@ class DatabaseManager:
                     FROM note_history
                     WHERE note_id = ?
                     ORDER BY timestamp DESC
-<<<<<<< HEAD
-                """, (note_id))
-=======
                 """, (note_id,))  # FIX: Added comma to make it a tuple
->>>>>>> V2.1.0
 
                 columns = [desc[0] for desc in cursor.description]
                 return [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -364,12 +352,8 @@ class DatabaseManager:
                 old = cursor.fetchone()
                 query = f"UPDATE notes SET {', '.join(updates)} WHERE id = ?"
                 cursor.execute(query, params)
-<<<<<<< HEAD
-                print("DEBUG history insert parms: ", (note_id, user_id, old))
-=======
                 
                 # Add to history
->>>>>>> V2.1.0
                 cursor.execute("""
                     INSERT INTO note_history 
                     (note_id, action, user_id, old_title, old_content, old_topic, old_priority) 
@@ -377,15 +361,9 @@ class DatabaseManager:
                 """, (note_id, 
                     str(user_id),
                     str(old[0]) if old[0] is not None else None,
-<<<<<<< HEAD
-                    str(old[1])if old[1] is not None else None,
-                    str(old[2])if old[2] is not None else None, 
-                    str(old[3])if old[3] is not None else None))
-=======
                     str(old[1]) if old[1] is not None else None,
                     str(old[2]) if old[2] is not None else None, 
                     str(old[3]) if old[3] is not None else None))
->>>>>>> V2.1.0
 
                 conn.commit()
                 

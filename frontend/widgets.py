@@ -6,24 +6,15 @@ from datetime import datetime
 
 class ModernCard(QFrame):
     note_selected = pyqtSignal(int)
-    note_double_clicked = pyqtSignal(dict)
-
+    
     def __init__(self, note_data, parent=None):
         super().__init__(parent)
         self.note_data = note_data
         self.is_selected = False
         self.setup_ui()
 
-<<<<<<< HEAD
-    def setup_ui(self):
-<<<<<<< HEAD
-=======
     def init_card(self):
 
->>>>>>> V2
-=======
-        """Set up the card UI"""
->>>>>>> V2.1.0
         self.setFrameStyle(QFrame.Box)
         self.setStyleSheet("""
             QFrame {
@@ -48,33 +39,22 @@ class ModernCard(QFrame):
         # Header with topic and priority
         header_layout = QHBoxLayout()
         
-        # Topic label - Fixed sizing
+        # Topic label - FIXED: Better sizing and no max width constraint
         topic_label = QLabel(f"📋 {self.note_data['topic']}")
         topic_label.setStyleSheet("""
             QLabel {
                 background: #e3f2fd;
                 color: #1976d2;
-<<<<<<< HEAD
-                padding: 6px 10px;
-=======
                 padding: 6px 6px 6px 6px;
->>>>>>> V2
                 border-radius: 12px;
                 font-size: 12px;
                 font-weight: 500;
-<<<<<<< HEAD
-                min-height: 16px;
-<<<<<<< HEAD
-                max-width: none;
-=======
                 max-width: none;
                 min-width: 80px;
                 text-align: center;
->>>>>>> V2
-=======
->>>>>>> V2.1.0
             }
         """)
+        # Remove max width constraint that was causing cut-off
         
         # Priority label
         priority_colors = {1: "#27ae60", 2: "#f39c12", 3: "#e67e22", 4: "#e74c3c", 5: "#8e44ad"}
@@ -158,42 +138,6 @@ class ModernCard(QFrame):
         layout.addLayout(footer_layout)
 
     def mousePressEvent(self, event):
-<<<<<<< HEAD
-<<<<<<< HEAD
-        """Handle mouse clicks on the card"""
-=======
-        """Handle clicks on the card"""
->>>>>>> V2.1.0
-        if event.button() == Qt.LeftButton:
-            # Emit selection and toggle visual selection state
-            self.note_selected.emit(self.note_data['id'])
-            self.toggle_selection()
-        super().mousePressEvent(event)
-        
-    def mouseDoubleClickEvent(self, event):
-        """Double click -> open view dialog"""
-        if event.button() == Qt.LeftButton:
-            # Emit both the id-selected event and the full note data for a double-click
-            self.note_selected.emit(self.note_data['id'])
-            # Emit the full note data so dialogs can receive all fields
-            try:
-                self.note_double_clicked.emit(self.note_data)
-            except Exception:
-                # Fallback: emit only id wrapped in dict form
-                self.note_double_clicked.emit({'id': self.note_data.get('id')})
-
-        # Call the proper super double-click handler
-        super().mouseDoubleClickEvent(event)
-
-    def set_selected(self, selected: bool):
-        """Update card selection state and style"""
-        self.is_selected = selected
-        if selected:
-            self.setStyleSheet("""
-                QFrame {
-<<<<<<< HEAD
-                    background: #e3f2fd;
-=======
         """Handle clicks on the card"""
         self.is_selected = True
         self.note_selected.emit(self.note_data['id'])  # emit the note ID
@@ -206,26 +150,13 @@ class ModernCard(QFrame):
             self.setStyleSheet("""
                 QFrame {
                     background: #f0f8ff;
->>>>>>> V2
-=======
-                    background: #f0f8ff;
->>>>>>> V2.1.0
                     border: 2px solid #3498db;
                     border-radius: 12px;
                     margin: 5px;
                 }
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
                 QFrame:hover {
                     border-color: #3498db;
                 }
->>>>>>> V2
-=======
-                QFrame:hover {
-                    border-color: #3498db;
-                }
->>>>>>> V2.1.0
             """)
         else:
             self.setStyleSheet("""
@@ -240,74 +171,3 @@ class ModernCard(QFrame):
                 }
             """)
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    def toggle_selection(self):
-        """Toggle selection state and update style (helper)."""
-        self.set_selected(not self.is_selected)
-
->>>>>>> V2.1.0
-class TopicButton(QPushButton):
-    """Custom topic button with emoji and styling"""
-    
-    def __init__(self, topic_name, color="#6c757d", parent=None):
-        super().__init__(parent)
-        self.topic_name = topic_name
-        self.color = color
-        self.setup_button()
-        
-    def setup_button(self):
-        """Set up the topic button"""
-        # Add emoji based on topic
-        topic_emojis = {
-            'Network': '🌐',
-            'Software': '💻', 
-            'Hardware': '🔧',
-            'Security': '🔒',
-            'General': '📋',
-            'All Topics': '📋'
-        }
-        
-        emoji = topic_emojis.get(self.topic_name, '📝')
-        self.setText(f"{emoji} {self.topic_name}")
-        
-        self.setStyleSheet(f"""
-            QPushButton {{
-                background: {self.color};
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 20px;
-                font-size: 12px;
-                font-weight: 500;
-                text-align: left;
-            }}
-            QPushButton:hover {{
-                background: {self.adjust_color_brightness(self.color, -20)};
-            }}
-            QPushButton:pressed {{
-                background: {self.adjust_color_brightness(self.color, -40)};
-            }}
-        """)
-        
-    def adjust_color_brightness(self, hex_color, amount):
-        """Adjust the brightness of a hex color"""
-        # Simple brightness adjustment - you could use a more sophisticated method
-        if hex_color.startswith('#'):
-            hex_color = hex_color[1:]
-        
-        # Convert to RGB
-        try:
-            rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-        except (ValueError, IndexError):
-            # Fallback for invalid hex colors
-            return "#6c757d"
-        
-        # Adjust brightness
-        rgb = tuple(max(0, min(255, c + amount)) for c in rgb)
-        
-        # Convert back to hex
-        return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
-=======
->>>>>>> V2
