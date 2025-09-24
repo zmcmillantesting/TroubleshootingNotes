@@ -216,6 +216,7 @@ TOOLBAR_STYLE = """
 """
 
 # Topic buttons
+<<<<<<< HEAD
 def topic_button_style(color_stop0, color_stop1=None):
     """Return a stylesheet for topic buttons.
 
@@ -237,6 +238,25 @@ def topic_button_style(color_stop0, color_stop1=None):
     color_stop1 = str(color_stop1)
 
     # Build a valid qlineargradient and close parentheses
+=======
+def topic_button_style(colors):
+    """Return a stylesheet for topic buttons.
+    
+    Args:
+        colors: Can be either:
+            - A single color string
+            - A tuple/list of (color1, color2) for gradient
+    """
+    # Handle different input types
+    if isinstance(colors, (tuple, list)) and len(colors) >= 2:
+        color_stop0, color_stop1 = str(colors[0]), str(colors[1])
+    else:
+        # Single color or fallback
+        color_stop0 = str(colors) if colors else "#6c757d"
+        color_stop1 = color_stop0
+
+    # Build the stylesheet with gradient
+>>>>>>> V2.1.0
     return f"""
     QPushButton {{
         background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
@@ -250,7 +270,12 @@ def topic_button_style(color_stop0, color_stop1=None):
         text-align: center;
     }}
     QPushButton:hover {{
+<<<<<<< HEAD
         background: {color_stop0};
+=======
+        background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+            stop:0 {color_stop0}, stop:1 {color_stop0});
+>>>>>>> V2.1.0
         opacity: 0.9;
     }}
     """

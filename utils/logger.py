@@ -1,9 +1,17 @@
 # utils/logger.py
 import logging
-import os
+import os, sys
 from datetime import datetime
 
-def setup_logging(log_dir="logs", log_level=logging.INFO):
+def resource_path(relative_path):
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+
+def setup_logging(log_dir=resource_path(r"P:\EMS_TR_PATH\Shared_notes\logs"), log_level=logging.INFO):
     """Setup application logging"""
     
     # Create logs directory if it doesn't exist
