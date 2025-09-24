@@ -1,14 +1,23 @@
-# frontend/clean_main_window.py
+# frontend/main_window.py
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import sys
 from datetime import datetime
+import os
 
 from backend.database_manager import DatabaseManager
-from frontend.dialogs import CompanyDialog, BoardDialog, NoteDialog
+from frontend.dialogs import CompanyDialog, BoardDialog, NoteDialog, NoteHistoryDialog, NoteViewerDialog
 from frontend.widgets import ModernCard
 from frontend.styles import *
+
+def resource_path(relative_path):
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 
 class LearningWindow(QMainWindow):
     def __init__(self):
@@ -23,6 +32,12 @@ class LearningWindow(QMainWindow):
         self.current_user = "Anonymous"
         self.selected_note_id = None
         self.current_view_mode = "cards"
+        self.show_archived = False
+        self.current_topic_filter = None
+        
+        # Initialize UI components
+        self.notes_scroll_area = None
+        self.cards = []
         
         self.init_ui()
         self.setup_connections()
@@ -42,14 +57,16 @@ class LearningWindow(QMainWindow):
         self.new_note_btn.clicked.connect(self.create_new_note)
         self.edit_note_btn.clicked.connect(self.edit_selected_note)
         self.archive_note_btn.clicked.connect(self.archive_selected_note)
+        self.history_note_btn.clicked.connect(self.show_note_history)
         self.user_input.textChanged.connect(self.on_user_changed)
+        self.show_archived_checkbox.stateChanged.connect(self.toggle_archived_notes)
     
     def on_user_changed(self, text):
         """Update current user when user input changes"""
         self.current_user = text.strip() if text.strip() else "Anonymous"
 
     def init_ui(self):
-        self.setWindowTitle("🛠️ Troubleshooting Notes - Modern Interface")
+        self.setWindowTitle("🛠️ Troubleshooting Notes")
         self.setMinimumSize(1400, 900)
         self.setStyleSheet(MAIN_WINDOW_STYLE)
 
@@ -60,14 +77,16 @@ class LearningWindow(QMainWindow):
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(10, 10, 10, 10)
 
+        # Create sidebar
         sidebar = self.create_modern_sidebar()
         main_layout.addWidget(sidebar)
 
+        # Create content area
         content_area = self.create_content_area()
         main_layout.addWidget(content_area, 3)
 
     def create_content_area(self):
-        """Create the modern content area with toolbar"""
+        """Create the modern content area with toolbar and notes display"""
         content_area = QWidget()
         content_area.setStyleSheet(CONTENT_AREA_STYLE)
 
@@ -75,15 +94,86 @@ class LearningWindow(QMainWindow):
         self.content_layout.setSpacing(15)
         self.content_layout.setContentsMargins(20, 20, 20, 20)
 
+        # Create toolbar
         toolbar = self.create_modern_toolbar()
         self.content_layout.addWidget(toolbar)
 
-        self.content_display = QLabel("Select a company and board to view notes")
-        self.content_display.setAlignment(Qt.AlignCenter)
-        self.content_display.setStyleSheet("color: #6c757d; font-size: 16px; padding: 40px;")
-        self.content_layout.addWidget(self.content_display)
+        # Create notes display area
+        self.create_notes_display_area()
 
         return content_area
+
+    def create_notes_display_area(self):
+        """Create the scrollable notes display area"""
+        # Create scroll area for notes
+        self.notes_scroll_area = QScrollArea()
+        self.notes_scroll_area.setWidgetResizable(True)
+        self.notes_scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #f1f3f4;
+                width: 12px;
+                border-radius: 6px;
+            }
+            QScrollBar::handle:vertical {
+                background: #c1c8cd;
+                border-radius: 6px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #a8b2b8;
+            }
+        """)
+
+        # Create the content widget that will hold all notes
+        self.notes_content_widget = QWidget()
+        self.notes_content_layout = QVBoxLayout(self.notes_content_widget)
+        self.notes_content_layout.setSpacing(15)
+        self.notes_content_layout.setContentsMargins(10, 10, 10, 10)
+        self.notes_content_layout.setAlignment(Qt.AlignTop)
+
+        # Set initial empty state
+        self.show_empty_state("Select a company and board to view notes")
+
+        # Set the content widget to the scroll area
+        self.notes_scroll_area.setWidget(self.notes_content_widget)
+        
+        # Add scroll area to main layout
+        self.content_layout.addWidget(self.notes_scroll_area)
+
+    def show_empty_state(self, message):
+        """Show empty state message in the notes area"""
+        # Clear existing content
+        self.clear_notes_display()
+        
+        # Create empty state label
+        empty_label = QLabel(message)
+        empty_label.setAlignment(Qt.AlignCenter)
+        empty_label.setStyleSheet("""
+            QLabel {
+                color: #6c757d;
+                font-size: 18px;
+                padding: 60px;
+                background: rgba(108, 117, 125, 0.1);
+                border-radius: 12px;
+                border: 2px dashed #dee2e6;
+            }
+        """)
+        
+        self.notes_content_layout.addWidget(empty_label)
+        self.notes_content_layout.addStretch()
+
+    def clear_notes_display(self):
+        """Clear all widgets from the notes display area"""
+        while self.notes_content_layout.count():
+            child = self.notes_content_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+        self.cards = []
 
     def create_modern_sidebar(self):
         """Create the sidebar"""
@@ -184,17 +274,18 @@ class LearningWindow(QMainWindow):
         header = QLabel("TOPICS")
         header.setStyleSheet(SECTION_HEADER_STYLE)
 
-        topics_widget = QWidget()
-        self.topics_layout = QVBoxLayout(topics_widget)
+        self.topics_widget = QWidget()
+        self.topics_layout = QVBoxLayout(self.topics_widget)
         self.topics_layout.setSpacing(8)
 
+        # "All Topics" button
         all_topics_btn = QPushButton("📋 All Topics")
         all_topics_btn.setStyleSheet(topic_button_style("#6c757d"))
-        all_topics_btn.clicked.connect(self.refresh_notes)
+        all_topics_btn.clicked.connect(lambda: self.filter_by_topic(None))
         self.topics_layout.addWidget(all_topics_btn)
 
         scroll = QScrollArea()
-        scroll.setWidget(topics_widget)
+        scroll.setWidget(self.topics_widget)
         scroll.setWidgetResizable(True)
         scroll.setMaximumHeight(200)
         scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
@@ -230,124 +321,57 @@ class LearningWindow(QMainWindow):
         self.table_view_btn.setCheckable(True)
         self.cards_view_btn.setChecked(True)
 
+        self.show_archived_checkbox = QCheckBox("Show Archived")
+        self.show_archived_checkbox.setStyleSheet("QCheckBox {color: #6c757d; font-size: 12px; }")
+
         view_layout.addWidget(self.cards_view_btn)
         view_layout.addWidget(self.table_view_btn)
 
         self.new_note_btn = QPushButton("✏️ New Note")
         self.edit_note_btn = QPushButton("📝 Edit")
         self.archive_note_btn = QPushButton("📦 Archive")
+        self.history_note_btn = QPushButton("📜 History")
 
         self.new_note_btn.setStyleSheet(NEW_NOTE_BUTTON_STYLE)
         self.edit_note_btn.setStyleSheet(EDIT_NOTE_BUTTON_STYLE)
         self.archive_note_btn.setStyleSheet(ARCHIVE_NOTE_BUTTON_STYLE)
+        self.history_note_btn.setStyleSheet(EDIT_NOTE_BUTTON_STYLE)
+
+        self.edit_note_btn.setEnabled(False)
+        self.archive_note_btn.setEnabled(False)
+        self.history_note_btn.setEnabled(False)
 
         toolbar_layout.addWidget(self.search_input, 2)
         toolbar_layout.addWidget(view_container)
         toolbar_layout.addWidget(self.new_note_btn)
         toolbar_layout.addWidget(self.edit_note_btn)
         toolbar_layout.addWidget(self.archive_note_btn)
+        toolbar_layout.addWidget(self.show_archived_checkbox)
+        toolbar_layout.addWidget(self.history_note_btn)
 
         return toolbar
 
-    def refresh_notes(self, topic_filter=None):
-        """Fixed refresh_notes method that updates topics sidebar"""
-        if not self.current_board_id:
-            return
-        
-        self.clear_notes_display()
-        
-        # Clear current content
-        if hasattr(self, 'notes_container'):
-            self.notes_container.deleteLater()
-
-        # Create scroll area for notes
-        self.notes_container = QScrollArea()
-        self.notes_container.setWidgetResizable(True)
-        self.notes_container.setStyleSheet("QScrollArea { border: none; background: transparent; }")
-
-        # Create container widget for notes
-        notes_widget = QWidget()
-        self.notes_layout = QVBoxLayout(notes_widget)
-        self.notes_layout.setSpacing(15)
-        self.notes_layout.setContentsMargins(10, 10, 10, 10)
-        self.notes_layout.setAlignment(Qt.AlignTop)
-
-        # Get notes from database
-        notes = self.db.get_notes(self.current_board_id)
-
-        if not notes:
-            no_notes_label = QLabel("No notes found for this board")
-            no_notes_label.setAlignment(Qt.AlignCenter)
-            no_notes_label.setStyleSheet("color: #6c757d; font-size: 16px; padding: 40px;")
-            self.notes_layout.addWidget(no_notes_label)
-        else:
-            # Filter by topic if specified
-            if topic_filter and topic_filter != "All Topics":
-                notes = [note for note in notes if note['topic'] == topic_filter]
-
-            # Filter by search text if any
-            search_text = self.search_input.text().lower()
-            if search_text:
-                notes = [note for note in notes 
-                        if search_text in note['title'].lower() 
-                        or search_text in note['content'].lower()]
-
-            if self.current_view_mode == "cards":
-                # Create cards view
-                cards_container = QWidget()
-                cards_layout = QVBoxLayout(cards_container)
-                cards_layout.setSpacing(15)
-
-                for note in notes:
-                    card = ModernCard(note)
-                    card.note_selected.connect(self.on_note_selected)
-                    cards_layout.addWidget(card)
-
-                self.notes_layout.addWidget(cards_container)
-            else:
-                #TODO: Create table view (you'll need to implement this)
-                table = QTableWidget()
-                table.setColumnCount(6)
-                table.setHorizontalHeaderLabels(['Title', 'Topic', 'Priority', 'Created By', 'Creation Date', 'Content Preview'])
-                table.setSelectionBehavior(QAbstractItemView.SelectRows)
-                table.setSelectionMode(QAbstractItemView.SingleSelection)
-
-                self.notes_layout.addWidget(table)
-
-                table.itemSelectionChanged.connect(self.on_table_selection_changed)
-        # Add stretch to push content to tops
-        self.notes_layout.addStretch()
-
-        # Set the widget and add to layout
-        self.notes_container.setWidget(notes_widget)
-
-        # Replace current content display
-        if hasattr(self, 'content_display'):
-            self.content_layout.replaceWidget(self.content_display, self.notes_container)
-            self.content_display.deleteLater()
-            self.content_display = self.notes_container
-        else:
-            self.content_layout.addWidget(self.notes_container)
-
-        # Update cards creation
-        for note in notes:
-            card = ModernCard(note)
-            card.note_selected.connect(self.on_note_selected)
-            card.note_double_clicked.connect(self.open_note_viewer)
-            cards_layout.addChildWidget(card)
-        # IMPORTANT: Refresh topics sidebar after loading notes
-        self.refresh_topics()
-
-    def on_table_selection_changed(self):
-        if hasattr(self, 'notes'):
-            current_row = self.notes.currentRow()
-            if current_row >= 0:
-                note_id_item = self.notes.data(Qt.UserRole)
-
     def on_note_selected(self, note_id):
-        """Handle note selection"""
+        """Handle note selection and enable edit button"""
         self.selected_note_id = note_id
-        # You can add visual feedback for selected notes here
+
+        # Update card selection states
+        for card in self.cards:
+            card.set_selected(card.note_data["id"] == note_id)
+        
+        # Enable buttons
+        self.edit_note_btn.setEnabled(True)
+        self.archive_note_btn.setEnabled(True)
+        self.history_note_btn.setEnabled(True)
+
+    def on_note_double_clicked(self, note_data):
+        # ✅ Correct argument order
+        dialog = NoteViewerDialog(note_data, self)
+        result = dialog.exec_()
+
+        if result == 2:
+            self.selected_note_id = note_data['id']
+            self.edit_selected_note()
 
     def show_cards_view(self):
         """Switch to cards view"""
@@ -363,32 +387,38 @@ class LearningWindow(QMainWindow):
         self.table_view_btn.setChecked(True)
         self.refresh_notes()
 
+    def show_note_history(self):
+        """Show history of the selected note"""
+        if not self.selected_note_id:
+            QMessageBox.warning(self, "Warning", "Please select a note first")
+            return
+
+        try:
+            history = self.db.get_note_history(self.selected_note_id)
+            dialog = NoteHistoryDialog(history, self)
+            dialog.exec_()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to fetch history: {str(e)}")
+
     def on_search_changed(self, text):
         """Handle search text changes"""
         self.refresh_notes()
 
     def create_new_note(self):
-        if not self.current_user or self.current_user == "Anonymous":
-            QMessageBox.warning(self, "User ID Required", "Please enter your User ID before creating a note.")
-            return
-        """Fixed create_new_note method that populates topics"""
+        """Create a new note"""
         if not self.current_board_id:
             QMessageBox.warning(self, "Warning", "Please select a board first")
             return
 
-        # Get existing topics for dropdown
         try:
-            existing_topics = self.db.get_topics(self.current_board_id)
-            print(f"Existing topics for dropdown: {existing_topics}")  # Debug
-        except Exception as e:
-            print(f"Error getting topics: {e}")
-            existing_topics = []
+            topics = self.db.get_topics(self.current_board_id)
+        except:
+            topics = []
 
-        dialog = NoteDialog(self, topics=existing_topics)
+        dialog = NoteDialog(self, topics=topics)
         if dialog.exec_():
             note_data = dialog.get_note_data()
 
-            # Extract individual parameters for the database call
             title = note_data['title']
             content = note_data['content']
             topic = note_data['topic']
@@ -396,7 +426,6 @@ class LearningWindow(QMainWindow):
             user_id = self.current_user
 
             try:
-                # Call the database method with individual parameters
                 self.db.add_note(
                     board_id=self.current_board_id,
                     topic=topic,
@@ -406,115 +435,108 @@ class LearningWindow(QMainWindow):
                     priority=priority
                 )
                 self.refresh_notes()
-                print(f"Added note with topic: {topic}")  # Debug
+                self.refresh_topics()
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to add note: {str(e)}")
-
-    def create_notes_table(self, notes):
-        """Create and populate the notes table"""
-        table = QTableWidget()
-        table.setColumnCount(6)
-        table.setHorizontalHeaderLabels(['Title', 'Topic', 'Priority', 'Created By', 'Date', 'Preview'])
-
-        # Define column indices for clarity
-        TITLE_COL = 0
-        TOPIC_COL = 1
-        PRIORITY_COL = 2  # This is what we needed!
-        CREATED_BY_COL = 3
-        DATE_COL = 4
-        PREVIEW_COL = 5
-
-        # Set table properties
-        table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        table.setSelectionMode(QAbstractItemView.SingleSelection)
-
-        # Populate data
-        table.setRowCount(len(notes))
-        for row, note in enumerate(notes):
-            # Title column (store note ID here)
-            title_item = QTableWidgetItem(note['title'])
-            title_item.setData(Qt.UserRole, note['id'])
-            table.setItem(row, TITLE_COL, title_item)
-
-            # Topic column
-            table.setItem(row, TOPIC_COL, QTableWidgetItem(note['topic']))
-
-            # Priority column with color
-            self.set_priority_cell_color(table, row, PRIORITY_COL, note['priority'])
-
-            # Other columns...
-            table.setItem(row, CREATED_BY_COL, QTableWidgetItem(note['created_by']))
-            # ... etc
-
-        return table
-
-    def set_priority_cell_color(self, table, row, priority_col_index, priority):
-        """Set priority cell background color"""
-        priority_colors = {1: "#27ae60", 2: "#f39c12", 3: "#e67e22", 4: "#e74c3c", 5: "#8e44ad"}
-        color = priority_colors.get(priority, "#6c757d")
-
-        priority_item = QTableWidgetItem(f"P{priority}")
-        priority_item.setBackground(QColor(color))
-        priority_item.setForeground(QColor("white"))
-        priority_item.setTextAlignment(Qt.AlignCenter)
-        table.setItem(row, priority_col_index, priority_item)
-
+                
     def edit_selected_note(self):
-        if not self.current_user or self.current_user == "Anonymous":
-            QMessageBox.warning(self, "User ID Required", "Please enter your User ID before editing a note.")
-            return
         """Edit the selected note"""
         if not self.selected_note_id:
             QMessageBox.warning(self, "Warning", "Please select a note first")
             return
 
-        note = self.db.get_notes(self.selected_note_id)
-        if note:
-            dialog = NoteDialog(self, note)
-            if dialog.exec_():
-                updated_data = dialog.get_note_data()
-                self.db.update_note(self.selected_note_id, updated_data)
+        notes = self.db.get_notes(self.current_board_id, include_archived=True)
+        note = next((n for n in notes if n["id"] == self.selected_note_id), None)
+
+        if not note:
+            QMessageBox.critical(self, "Error", "Selected note could not be found")
+            return
+
+        try:
+            topics = self.db.get_topics(self.current_board_id)
+        except:
+            topics = []
+
+        dialog = NoteDialog(self, note, topics)
+        if dialog.exec_():
+            updated_data = dialog.get_note_data()
+            title = updated_data.get('title', '').strip()
+            content = updated_data.get('content', '')
+            topic = updated_data.get('topic')
+            priority = updated_data.get('priority')
+            user_id = self.current_user
+
+            try:
+                self.db.update_note(
+                    self.selected_note_id,
+                    title,
+                    content,
+                    user_id,
+                    topic=topic,
+                    priority=priority
+                )
                 self.refresh_notes()
+                self.refresh_topics()
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to update note: {str(e)}")
 
     def archive_selected_note(self): 
-        if not self.current_user or self.current_user == "Anonymous":
-            QMessageBox.warning(self, "User ID Required", "Please enter your User ID before archiving a note.")
-            return
         """Archive the selected note"""
         if not self.selected_note_id:
             QMessageBox.warning(self, "Warning", "Please select a note first")
             return
 
-        reply = QMessageBox.question(self, "Archive Note", 
-                                   "Are you sure you want to archive this note?",
-                                   QMessageBox.Yes | QMessageBox.No)
+        reply = QMessageBox.question(
+            self,
+            "Archive Note", 
+            "Are you sure you want to archive this note?",
+            QMessageBox.Yes | QMessageBox.No
+        )
 
         if reply == QMessageBox.Yes:
-            self.db.archive_note(self.selected_note_id, user_id=self.current_user)
-            self.selected_note_id = None
-            self.refresh_notes()
+            try:
+                self.db.archive_note(self.selected_note_id, self.current_user)
+                self.selected_note_id = None
+                self.edit_note_btn.setEnabled(False)
+                self.archive_note_btn.setEnabled(False)
+                self.history_note_btn.setEnabled(False)
+                self.refresh_notes()
+                self.refresh_topics()
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to archive note: {str(e)}")
+
+    def toggle_archived_notes(self, state):
+        """Toggle showing archived notes"""
+        self.show_archived = (state == Qt.Checked)
+        self.refresh_notes()
 
     def refresh_companies(self):
         """Refresh the company dropdown"""
         self.company_combo.clear()
-        companies = self.db.get_companies()
-        for company_id, name in companies:
-            self.company_combo.addItem(name, company_id)
+        try:
+            companies = self.db.get_companies()
+            for company_id, name in companies:
+                self.company_combo.addItem(name, company_id)
 
-        if companies:
-            self.current_company_id = companies[0][0]
-            self.refresh_boards()
+            if companies:
+                self.current_company_id = companies[0][0]
+                self.refresh_boards()
+            else:
+                self.current_company_id = None
+                self.show_empty_state("No companies found. Please add a company first.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to load companies: {str(e)}")
 
     def refresh_boards(self):
         """Refresh the board dropdown"""
         self.board_combo.clear()
         if not self.current_company_id:
+            self.show_empty_state("Please select a company first")
             return
         
         try:
             boards = self.db.get_boards(self.current_company_id)
             for board in boards:
-                # Handle both (id, name) and (id, name, description) formats
                 board_id = board[0]
                 board_name = board[1]
                 self.board_combo.addItem(board_name, board_id)
@@ -522,98 +544,163 @@ class LearningWindow(QMainWindow):
             if boards:
                 self.current_board_id = boards[0][0]
                 self.refresh_notes()
+                self.refresh_topics()
             else:
                 self.current_board_id = None
-                self.refresh_notes()  # Clear notes display
+                self.show_empty_state("No boards found. Please add a board first.")
+                self.refresh_topics()
                 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to load boards: {str(e)}")
             self.current_board_id = None
-            self.refresh_notes()
+            self.show_empty_state("Error loading boards")
+            self.refresh_topics()
 
     def refresh_topics(self):
+        """Refresh the topics list in the sidebar"""
+        # Clear existing topic buttons (except "All Topics")
+        for i in reversed(range(self.topics_layout.count())):
+            widget = self.topics_layout.itemAt(i).widget()
+            if widget and not widget.text().startswith("📋 All Topics"):
+                widget.deleteLater()
+        
         if not self.current_board_id:
             return
         
-        for i in reversed(range(self.topics_layout.count())):
-            child = self.topics_layout.itemAt(i).widget()
-            if child and child.text() != "📋 All Topics":
-                child.deleteLater()
-        
         try:
             topics = self.db.get_topics(self.current_board_id)
-            print(f"Found topics: {topics} ")
-
-            topic_colors = {
-                'Troubleshooting': '#3498db',
-                'Testing': '#e74c3c',
-                'Labeling': '#f39c12',
-                'General': '#9b59b6',
-                'Miscellaneous': '#95a5a6'
-            }
 
             for topic in topics:
-                color = topic_colors.get(topic, "#6c757d")
-                topic_button = QPushButton(f"📝 {topic}")
-                topic_button.setStyleSheet("""
-                    QPushButton {{
-                        background: {color};
-                        color: white;
-                        border: none;
-                        padding: 8px 12px;
-                        border-radius: 20px;
-                        font-size: 12px;
-                        font-weight: 500;
-                        text-align: left;
-                        min-height: 24px;
-                    }}
-                    QPushButton:hover {{
-                        background: {color};
-                        opacity: 0.8;
-                    }}
-                """)
-                topic_button.clicked.connect(lambda checked, t=topic: self.refresh_notes(t))
-                self.topics_layout.addWidget(topic_button)
+                if topic:
+                    topic_btn = QPushButton(f"📁 {topic}")
+                    color_tuple = self.generate_topic_color(topic)
+                    topic_btn.setStyleSheet(topic_button_style(color_tuple))
+                    topic_btn.clicked.connect(lambda checked, t=topic: self.filter_by_topic(t))
+                    self.topics_layout.addWidget(topic_btn)
+
         except Exception as e:
-            print(f"Error Refreshing topics: {e}")
+            print(f"Error loading topics: {e}")
 
-    def open_note_viewer(self, note_id):
-        print(f"Double-clicked note ID: {note_id}")
+    def generate_topic_color(self, topic_name):
+        """Generate consistent colors for topics"""
+        color1 = hash(topic_name) % 360
+        color2 = (color1 + 60) % 360
+        hsl_string_for_color_1 = f"hsl({color1}, 70%, 65%)"
+        hsl_string_for_color_2 = f"hsl({color2}, 70%, 65%)"
+        return (hsl_string_for_color_1, hsl_string_for_color_2)
+    
+    def filter_by_topic(self, topic):
+        """Filter notes by topic"""
+        self.current_topic_filter = topic
+        self.refresh_notes()
+        
+    def refresh_notes(self):
+        """Refresh the notes display in the main window"""
+        if not self.current_board_id:
+            self.show_empty_state("Select a company and board to view notes")
+            return
 
-    def clear_notes_display(self):
-        if hasattr(self, 'notes_container') and self.notes_container:
-            self.content_layout.removeWidget(self.notes_container)
-            self.notes_container.deleteLater()
-            self.notes_container = None
+        try:
+            # Get notes from database
+            notes = self.db.get_notes(self.current_board_id, include_archived=self.show_archived)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to load notes: {str(e)}")
+            self.show_empty_state("Error loading notes")
+            return
+
+        # Apply filters
+        filtered_notes = notes
+
+        # Filter by topic if specified
+        if self.current_topic_filter:
+            filtered_notes = [note for note in filtered_notes if note['topic'] == self.current_topic_filter]
+
+        # Filter by search text if any
+        search_text = self.search_input.text().lower().strip()
+        if search_text:
+            filtered_notes = [note for note in filtered_notes 
+                            if search_text in note['title'].lower() 
+                            or search_text in note['content'].lower()
+                            or search_text in note['topic'].lower()]
+
+        # Clear existing display
+        self.clear_notes_display()
+
+        # Show appropriate content
+        if not filtered_notes:
+            if search_text or self.current_topic_filter:
+                self.show_empty_state("No notes match your search criteria")
+            else:
+                self.show_empty_state("No notes found. Click 'New Note' to create one!")
+        else:
+            if self.current_view_mode == "cards":
+                self.display_notes_as_cards(filtered_notes)
+            else:
+                self.display_notes_as_table(filtered_notes)
+
+    def display_notes_as_cards(self, notes):
+        """Display notes as cards in the scroll area"""
+        for note in notes:
+            card = ModernCard(note)
+            card.note_selected.connect(self.on_note_selected)
+            card.note_double_clicked.connect(self.on_note_double_clicked)
+            self.cards.append(card)
+            self.notes_content_layout.addWidget(card)
+        
+        # Add stretch to push cards to top
+        self.notes_content_layout.addStretch()
+
+    def display_notes_as_table(self, notes):
+        """Display notes as table (placeholder implementation)"""
+        table_label = QLabel("📊 Table view coming soon!")
+        table_label.setAlignment(Qt.AlignCenter)
+        table_label.setStyleSheet("""
+            QLabel {
+                color: #6c757d;
+                font-size: 16px;
+                padding: 40px;
+                background: rgba(108, 117, 125, 0.1);
+                border-radius: 12px;
+            }
+        """)
+        self.notes_content_layout.addWidget(table_label)
+        self.notes_content_layout.addStretch()
 
     def on_company_changed(self, index):
         """Handle company selection change"""
         if index >= 0:
             self.current_company_id = self.company_combo.currentData()
+            self.current_topic_filter = None  # Reset topic filter
             self.refresh_boards()
 
     def on_board_changed(self, index):
         """Handle board selection change"""
         if index >= 0:
             self.current_board_id = self.board_combo.currentData()
+            self.current_topic_filter = None  # Reset topic filter
+            self.selected_note_id = None  # Reset selected note
+            # Disable action buttons
+            self.edit_note_btn.setEnabled(False)
+            self.archive_note_btn.setEnabled(False)
+            self.history_note_btn.setEnabled(False)
             self.refresh_notes()
+            self.refresh_topics()
 
     def add_company(self):
-        if not self.current_user or self.current_user == "Anonymous":
-            QMessageBox.warning(self, "User ID Required", "Please enter your User ID before adding a company.")
-            return
         """Add a new company"""
         dialog = CompanyDialog(self)
         if dialog.exec_():
             company_name = dialog.get_company_name()
             if company_name:
-                self.db.add_company(company_name)
-                self.refresh_companies()
+                try:
+                    self.db.add_company(company_name)
+                    self.refresh_companies()
+                except ValueError as e:
+                    QMessageBox.warning(self, "Warning", str(e))
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"Failed to add company: {str(e)}")
 
     def delete_company(self):
-        if not self.current_user or self.current_user == "Anonymous":
-            QMessageBox.warning(self, "User ID Required", "Please enter your User ID before deleting a company.")
-            return
         """Delete the selected company"""
         if not self.current_company_id:
             QMessageBox.warning(self, "Warning", "Please select a company first")
@@ -630,15 +717,16 @@ class LearningWindow(QMainWindow):
                 self.db.delete_company(self.current_company_id)
                 self.current_company_id = None
                 self.current_board_id = None
+                self.selected_note_id = None
+                self.current_topic_filter = None
+                self.edit_note_btn.setEnabled(False)
+                self.archive_note_btn.setEnabled(False)
+                self.history_note_btn.setEnabled(False)
                 self.refresh_companies()
-                self.refresh_notes()  # Clear any displayed notes
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to delete company: {str(e)}")
 
     def add_board(self):
-        if not self.current_user or self.current_user == "Anonymous":
-            QMessageBox.warning(self, "User ID Required", "Please enter your User ID before adding a board.")
-            return
         """Add a new board"""
         if not self.current_company_id:
             QMessageBox.warning(self, "Warning", "Please select a company first")
@@ -648,7 +736,6 @@ class LearningWindow(QMainWindow):
         if dialog.exec_():
             board_name, description = dialog.get_board_data()
 
-            # Validate board name
             if not board_name.strip():
                 QMessageBox.warning(self, "Warning", "Board name cannot be empty")
                 return
@@ -662,19 +749,25 @@ class LearningWindow(QMainWindow):
                 QMessageBox.critical(self, "Error", f"Failed to add board: {str(e)}")
 
     def delete_board(self):
-        if not self.current_user or self.current_user == "Anonymous":
-            QMessageBox.warning(self, "User ID Required", "Please enter your User ID before deleting a board.")
-            return
         """Delete the selected board"""
         if not self.current_board_id:
             QMessageBox.warning(self, "Warning", "Please select a board first")
             return
 
+        board_name = self.board_combo.currentText()
         reply = QMessageBox.question(self, "Delete Board", 
-                                   "Are you sure you want to delete this board and all its notes?",
+                                   f"Are you sure you want to delete '{board_name}' and all its notes?",
                                    QMessageBox.Yes | QMessageBox.No)
 
         if reply == QMessageBox.Yes:
-            self.db.delete_board(self.current_board_id)
-            self.current_board_id = None
-            self.refresh_boards()
+            try:
+                self.db.delete_board(self.current_board_id)
+                self.current_board_id = None
+                self.selected_note_id = None
+                self.current_topic_filter = None
+                self.edit_note_btn.setEnabled(False)
+                self.archive_note_btn.setEnabled(False)
+                self.history_note_btn.setEnabled(False)
+                self.refresh_boards()
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to delete board: {str(e)}")

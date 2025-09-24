@@ -1,6 +1,8 @@
-# backend/database_manager.py
+
+
 import sqlite3
 import os
+import sys
 import logging
 from contextlib import contextmanager
 from datetime import datetime
@@ -8,10 +10,17 @@ from datetime import datetime
 # Set up logging
 logger = logging.getLogger(__name__)
 
+def resource_path(relative_path):
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 class DatabaseManager:
-    def __init__(self, db_path=None, db_name="shard_notes.db"):
+    def __init__(self, db_path=resource_path(r"P:\EMS_TR_PATH\Shared_notes"), db_name="shard_notes.db"):
         if db_path is None:
-            self.db_path = r"P:\EMS_TR_PATH\Shared_notes"
+            self.db_path = resource_path(r"P:\EMS_TR_PATH\Shared_notes")
         else:
             self.db_path = db_path
             
@@ -87,11 +96,26 @@ class DatabaseManager:
                     )
                 """)
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS note_history (
+                    history_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    note_id INTEGER NOT NULL,
+                    action TEXT NOT NULL,          -- 'created', 'updated', 'archived'
+                    user_id TEXT NOT NULL,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    old_title TEXT,
+                    old_content TEXT,
+                    old_topic TEXT,
+                    old_priority INTEGER,
+                    FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE
+                    )           
+                """)            
+
                 # Create indexes for better performance
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_board_id ON notes(board_id)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_topic ON notes(topic)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_boards_company_id ON boards(company_id)")
-
+                
                 conn.commit()
                 logger.info("Database initialized successfully")
         except Exception as e:
@@ -216,9 +240,18 @@ class DatabaseManager:
                     INSERT INTO notes (board_id, topic, title, content, created_by, last_modified_by, priority) 
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, (board_id, topic.strip(), title.strip(), content, user_id, user_id, priority))
+                
+                note_id = cursor.lastrowid
+                
+                # Add to history
+                cursor.execute("""
+                    INSERT INTO note_history (note_id, action, user_id)
+                    VALUES (?, 'created', ?)
+                """, (note_id, user_id))
+                
                 conn.commit()
                 logger.info(f"Added note '{title}' to board ID {board_id}")
-                return cursor.lastrowid
+                return note_id
         except Exception as e:
             logger.error(f"Failed to add note '{title}': {e}")
             raise
@@ -255,6 +288,24 @@ class DatabaseManager:
             logger.error(f"Failed to get notes for board ID {board_id}: {e}")
             raise
 
+    def get_note_history(self, note_id):
+        """Get full history of a note"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT action, user_id, timestamp, old_title, old_content, old_topic, old_priority
+                    FROM note_history
+                    WHERE note_id = ?
+                    ORDER BY timestamp DESC
+                """, (note_id,))  # FIX: Added comma to make it a tuple
+
+                columns = [desc[0] for desc in cursor.description]
+                return [dict(zip(columns, row)) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Failed to fetch note history for note {note_id}: {e}")
+            raise
+
     def get_topics(self, board_id):
         """Get all unique topics for a board"""
         try:
@@ -276,6 +327,13 @@ class DatabaseManager:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
 
+                # Get old values first
+                cursor.execute("SELECT title, content, topic, priority FROM notes WHERE id = ?", (note_id,))
+                old = cursor.fetchone()
+                
+                if not old:
+                    raise ValueError(f"Note with ID {note_id} not found")
+
                 # Build dynamic update query
                 updates = ["title = ?", "content = ?", "last_modified_by = ?", "updated_at = CURRENT_TIMESTAMP"]
                 params = [title.strip(), content, user_id]
@@ -292,6 +350,19 @@ class DatabaseManager:
 
                 query = f"UPDATE notes SET {', '.join(updates)} WHERE id = ?"
                 cursor.execute(query, params)
+                
+                # Add to history
+                cursor.execute("""
+                    INSERT INTO note_history 
+                    (note_id, action, user_id, old_title, old_content, old_topic, old_priority) 
+                    VALUES (?, 'updated', ?, ?, ?, ?, ?)
+                """, (note_id, 
+                    str(user_id),
+                    str(old[0]) if old[0] is not None else None,
+                    str(old[1]) if old[1] is not None else None,
+                    str(old[2]) if old[2] is not None else None, 
+                    str(old[3]) if old[3] is not None else None))
+
                 conn.commit()
                 
                 logger.info(f"Updated note ID {note_id}")
@@ -305,11 +376,20 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
+
                 cursor.execute("""
-                    UPDATE notes 
-                    SET is_archived = TRUE, last_modified_by = ?, updated_at = CURRENT_TIMESTAMP 
+                    INSERT INTO note_history (note_id, action, user_id)
+                    VALUES (?, 'archived', ?)
+                """, (note_id, user_id))
+
+                cursor.execute("""
+                    UPDATE notes
+                    SET is_archived = TRUE,
+                        last_modified_by = ?,
+                        updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
-                """, (user_id, note_id))
+                    """, (user_id, note_id))
+                
                 conn.commit()
                 logger.info(f"Archived note ID {note_id}")
                 return cursor.rowcount > 0

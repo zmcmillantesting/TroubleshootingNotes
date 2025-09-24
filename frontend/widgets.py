@@ -6,8 +6,8 @@ from datetime import datetime
 
 class ModernCard(QFrame):
     note_selected = pyqtSignal(int)
-    note_double_clicked = pyqtSignal(int)
-    
+    note_double_clicked = pyqtSignal(dict)
+
     def __init__(self, note_data, parent=None):
         super().__init__(parent)
         self.note_data = note_data
@@ -15,6 +15,7 @@ class ModernCard(QFrame):
         self.setup_ui()
 
     def setup_ui(self):
+        """Set up the card UI"""
         self.setFrameStyle(QFrame.Box)
         self.setStyleSheet("""
             QFrame {
@@ -39,23 +40,19 @@ class ModernCard(QFrame):
         # Header with topic and priority
         header_layout = QHBoxLayout()
         
-        # Topic label - FIXED: Better sizing and no max width constraint
+        # Topic label - Fixed sizing
         topic_label = QLabel(f"📋 {self.note_data['topic']}")
         topic_label.setStyleSheet("""
             QLabel {
                 background: #e3f2fd;
                 color: #1976d2;
-                padding: 6px 6px 6px 6px;
+                padding: 6px 10px;
                 border-radius: 12px;
                 font-size: 12px;
                 font-weight: 500;
-                text-align: center;
                 min-height: 16px;
-                min-width: 80px;
-                max-width: none;
             }
         """)
-        # Remove max width constraint that was causing cut-off
         
         # Priority label
         priority_colors = {1: "#27ae60", 2: "#f39c12", 3: "#e67e22", 4: "#e74c3c", 5: "#8e44ad"}
@@ -139,22 +136,41 @@ class ModernCard(QFrame):
         layout.addLayout(footer_layout)
 
     def mousePressEvent(self, event):
-        """Handle mouse clicks on the card"""
+        """Handle clicks on the card"""
         if event.button() == Qt.LeftButton:
+            # Emit selection and toggle visual selection state
             self.note_selected.emit(self.note_data['id'])
             self.toggle_selection()
         super().mousePressEvent(event)
         
-    def toggle_selection(self):
-        """Toggle card selection state"""
-        self.is_selected = not self.is_selected
-        if self.is_selected:
+    def mouseDoubleClickEvent(self, event):
+        """Double click -> open view dialog"""
+        if event.button() == Qt.LeftButton:
+            # Emit both the id-selected event and the full note data for a double-click
+            self.note_selected.emit(self.note_data['id'])
+            # Emit the full note data so dialogs can receive all fields
+            try:
+                self.note_double_clicked.emit(self.note_data)
+            except Exception:
+                # Fallback: emit only id wrapped in dict form
+                self.note_double_clicked.emit({'id': self.note_data.get('id')})
+
+        # Call the proper super double-click handler
+        super().mouseDoubleClickEvent(event)
+
+    def set_selected(self, selected: bool):
+        """Update card selection state and style"""
+        self.is_selected = selected
+        if selected:
             self.setStyleSheet("""
                 QFrame {
-                    background: #e3f2fd;
+                    background: #f0f8ff;
                     border: 2px solid #3498db;
                     border-radius: 12px;
                     margin: 5px;
+                }
+                QFrame:hover {
+                    border-color: #3498db;
                 }
             """)
         else:
@@ -170,13 +186,9 @@ class ModernCard(QFrame):
                 }
             """)
 
-    def mouseDoubleClickEvent(self, event):
-        """Handle double-click to open note for viewing/editing"""
-        if event.button() == Qt.LeftButton:
-            # Emit a different signal for double-click
-            self.note_double_clicked.emit(self.note_data['id'])
-        super().mouseDoubleClickEvent(event)
-
+    def toggle_selection(self):
+        """Toggle selection state and update style (helper)."""
+        self.set_selected(not self.is_selected)
 
 class TopicButton(QPushButton):
     """Custom topic button with emoji and styling"""
@@ -188,6 +200,7 @@ class TopicButton(QPushButton):
         self.setup_button()
         
     def setup_button(self):
+        """Set up the topic button"""
         # Add emoji based on topic
         topic_emojis = {
             'Network': '🌐',
@@ -227,7 +240,11 @@ class TopicButton(QPushButton):
             hex_color = hex_color[1:]
         
         # Convert to RGB
-        rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        try:
+            rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        except (ValueError, IndexError):
+            # Fallback for invalid hex colors
+            return "#6c757d"
         
         # Adjust brightness
         rgb = tuple(max(0, min(255, c + amount)) for c in rgb)

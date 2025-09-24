@@ -1,5 +1,0 @@
-2025-09-15 17:19:29,229 - utils.logger - INFO - Logging initialized. Log file: logs\app_20250915_171929.log
-2025-09-15 17:19:29,230 - __main__ - INFO - Starting Troubleshooting Notes Application
-2025-09-15 17:19:29,261 - backend.database_manager - INFO - Database initialized successfully
-2025-09-15 17:19:29,708 - __main__ - INFO - Application started successfully
-2025-09-15 17:19:57,026 - backend.database_manager - INFO - Added note 'Testing Notes' to board ID 1

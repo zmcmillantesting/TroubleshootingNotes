@@ -214,54 +214,40 @@ TOOLBAR_STYLE = """
         padding: 15px;
     }
 """
-# table
-TABLE_STYLE = """
-QTableWidget {
-    background: white;
-    border: 2px solid #e9ecef;
-    border-radius: 8px;
-    gridline-color: #f8f9fa;
-    font-size: 14px;
-}
-QTableWidget::item {
-    padding: 12px 8px;
-    border-bottom: 1px solid #f8f9fa;
-}
-QTableWidget::item:selected {
-    background: #e3f2fd;
-    color: #1976d2;
-}
-QTableWidget::item:hover {
-    background: #f8f9fa;
-}
-QHeaderView::section {
-    background: #f8f9fa;
-    color: #6c757d;
-    padding: 12px 8px;
-    border: none;
-    border-bottom: 2px solid #e9ecef;
-    font-weight: bold;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-"""
 
 # Topic buttons
-def topic_button_style(color):
+def topic_button_style(colors):
+    """Return a stylesheet for topic buttons.
+    
+    Args:
+        colors: Can be either:
+            - A single color string
+            - A tuple/list of (color1, color2) for gradient
+    """
+    # Handle different input types
+    if isinstance(colors, (tuple, list)) and len(colors) >= 2:
+        color_stop0, color_stop1 = str(colors[0]), str(colors[1])
+    else:
+        # Single color or fallback
+        color_stop0 = str(colors) if colors else "#6c757d"
+        color_stop1 = color_stop0
+
+    # Build the stylesheet with gradient
     return f"""
     QPushButton {{
-        background: {color};
+        background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+            stop:0 {color_stop0}, stop:1 {color_stop1});
         color: white;
         border: none;
         padding: 8px 12px;
         border-radius: 20px;
         font-size: 12px;
         font-weight: 500;
-        text-align: left;
+        text-align: center;
     }}
     QPushButton:hover {{
-        background: {color};
+        background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+            stop:0 {color_stop0}, stop:1 {color_stop0});
         opacity: 0.9;
     }}
     """
