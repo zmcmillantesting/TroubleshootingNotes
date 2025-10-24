@@ -11,7 +11,6 @@ class ModernCard(QFrame):
         super().__init__(parent)
         self.note_data = note_data
         self.is_selected = False
-        self.setup_ui()
 
     def init_card(self):
 

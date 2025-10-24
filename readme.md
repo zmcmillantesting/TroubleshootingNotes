@@ -20,6 +20,6 @@
     - └── main.py                # Application entry point
 
 # TODOS
-- Archive button isn't showing changes or deleted notes
+- perform testing on compiled version to ensure all features work on V2.1.0
 - topic label shows white on white which makes the topic difficult to read. Change topic button background or lettering for ease of reading 
 - disable all features until user enters in user id 
