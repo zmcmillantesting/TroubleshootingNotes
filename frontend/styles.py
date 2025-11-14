@@ -199,7 +199,8 @@ SEARCH_INPUT_STYLE = """
         border-radius: 25px;
         background: white;
         font-size: 14px;
-        min-width: 300px;
+        min-width: 200px;
+        max-width: 250px;
     }
     QLineEdit:focus {
         border-color: #3498db;
