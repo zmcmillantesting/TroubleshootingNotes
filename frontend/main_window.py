@@ -51,8 +51,8 @@ class LearningWindow(QMainWindow):
         self.delete_company_btn.clicked.connect(self.delete_company)
         self.add_board_btn.clicked.connect(self.add_board)
         self.delete_board_btn.clicked.connect(self.delete_board)
-        self.cards_view_btn.clicked.connect(self.show_cards_view)
-        self.table_view_btn.clicked.connect(self.show_table_view)
+        # self.cards_view_btn.clicked.connect(self.show_cards_view)
+        # self.table_view_btn.clicked.connect(self.show_table_view)
         self.search_input.textChanged.connect(self.on_search_changed)
         self.new_note_btn.clicked.connect(self.create_new_note)
         self.edit_note_btn.clicked.connect(self.edit_selected_note)
@@ -305,27 +305,28 @@ class LearningWindow(QMainWindow):
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("🔍 Search notes...")
         self.search_input.setStyleSheet(SEARCH_INPUT_STYLE)
+        
 
         view_container = QWidget()
         view_layout = QHBoxLayout(view_container)
         view_layout.setSpacing(0)
         view_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.cards_view_btn = QPushButton("📋 Cards")
-        self.table_view_btn = QPushButton("📊 Table")
+        # self.cards_view_btn = QPushButton("📋 Cards")
+        # self.table_view_btn = QPushButton("📊 Table")
 
-        self.cards_view_btn.setStyleSheet(VIEW_BUTTON_STYLE + "QPushButton { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }")
-        self.table_view_btn.setStyleSheet(VIEW_BUTTON_STYLE + "QPushButton { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }")
+        # self.cards_view_btn.setStyleSheet(VIEW_BUTTON_STYLE + "QPushButton { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }")
+        # self.table_view_btn.setStyleSheet(VIEW_BUTTON_STYLE + "QPushButton { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }")
 
-        self.cards_view_btn.setCheckable(True)
-        self.table_view_btn.setCheckable(True)
-        self.cards_view_btn.setChecked(True)
+        # self.cards_view_btn.setCheckable(True)
+        # self.table_view_btn.setCheckable(True)
+        # self.cards_view_btn.setChecked(True)
 
         self.show_archived_checkbox = QCheckBox("Show Archived")
         self.show_archived_checkbox.setStyleSheet("QCheckBox {color: #6c757d; font-size: 12px; }")
 
-        view_layout.addWidget(self.cards_view_btn)
-        view_layout.addWidget(self.table_view_btn)
+        # view_layout.addWidget(self.table_view_btn)
+        # view_layout.addWidget(self.cards_view_btn)
 
         self.new_note_btn = QPushButton("✏️ New Note")
         self.edit_note_btn = QPushButton("📝 Edit")
@@ -373,19 +374,19 @@ class LearningWindow(QMainWindow):
             self.selected_note_id = note_data['id']
             self.edit_selected_note()
 
-    def show_cards_view(self):
-        """Switch to cards view"""
-        self.current_view_mode = "cards"
-        self.cards_view_btn.setChecked(True)
-        self.table_view_btn.setChecked(False)
-        self.refresh_notes()
+    # def show_cards_view(self):
+    #     """Switch to cards view"""
+    #     self.current_view_mode = "cards"
+    #     self.cards_view_btn.setChecked(True)
+    #     self.table_view_btn.setChecked(False)
+    #     self.refresh_notes()
 
-    def show_table_view(self):
-        """Switch to table view"""
-        self.current_view_mode = "table"
-        self.cards_view_btn.setChecked(False)
-        self.table_view_btn.setChecked(True)
-        self.refresh_notes()
+    # def show_table_view(self):
+    #     """Switch to table view"""
+    #     self.current_view_mode = "table"
+    #     self.cards_view_btn.setChecked(False)
+    #     self.table_view_btn.setChecked(True)
+    #     self.refresh_notes()
 
     def show_note_history(self):
         """Show history of the selected note"""
